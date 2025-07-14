@@ -9,21 +9,19 @@ export async function onRequestPost(context: any): Promise<Response> {
   const { request, env } = context;
 
   try {
-    const formData = await request.formData();
-    const imageFile = formData.get('image') as File;
-    const sessionId = formData.get('sessionId') as string;
+    // Get base64 image from request body and session ID from header
+    const base64Image = await request.text();
+    const sessionId = request.headers.get('x-session-id');
 
-    if (!imageFile || !sessionId) {
+    if (!base64Image || !sessionId) {
       return new Response(JSON.stringify({ error: 'Missing image or sessionId' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Convert image to base64
-    const arrayBuffer = await imageFile.arrayBuffer();
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-    const dataUrl = `data:${imageFile.type};base64,${base64Image}`;
+    // Create data URL for OpenAI
+    const dataUrl = `data:image/jpeg;base64,${base64Image}`;
 
     // Initialize OpenAI
     const openai = new OpenAI({
