@@ -24,70 +24,83 @@ export async function onRequest(context: any): Promise<Response> {
   const webSocketPair = new WebSocketPair();
   const [client, server] = Object.values(webSocketPair);
 
-  // Initialize OpenAI
-  const openai = new OpenAI({
-    apiKey: env.OPENAI_API_KEY,
-  });
-
   server.accept();
 
-  // Handle WebSocket connection
-  server.addEventListener('message', async (event) => {
-    try {
-      console.log('Received WebSocket message');
-      
-      if (typeof event.data === 'string') {
-        // Initial session configuration
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'session.update') {
-          // Get any stored compliments for this session
-          const storedCompliments = await env.COMPLIMENTS.get(sessionId);
-          let instructions = `You are a friendly AI assistant having a real-time voice conversation. 
-            Be conversational, engaging, and helpful. Keep responses concise but warm.
-            Always end your responses with a question to keep the conversation flowing.
-            **You must speak only in English.**`;
-          
-          if (storedCompliments) {
-            instructions += `\n\nI can see you right now, and I want to compliment you: ${storedCompliments}`;
-          }
-
-          const sessionConfig = {
-            type: 'session.update',
-            session: {
-              modalities: ['text', 'audio'],
-              instructions: instructions,
-              voice: 'alloy',
-              input_audio_format: 'pcm16',
-              output_audio_format: 'pcm16',
-              input_audio_transcription: {
-                model: 'whisper-1'
-              }
-            }
-          };
-
-          server.send(JSON.stringify(sessionConfig));
-        }
-      } else {
-        // Binary audio data - forward to OpenAI
-        const audioData = new Uint8Array(event.data as ArrayBuffer);
-        const base64Audio = btoa(String.fromCharCode(...audioData));
-        
-        const audioMessage = {
-          type: 'input_audio_buffer.append',
-          audio: base64Audio
-        };
-
-        server.send(JSON.stringify(audioMessage));
-      }
-    } catch (error) {
-      console.error('WebSocket message error:', error);
-      server.send(JSON.stringify({ type: 'error', message: 'Internal server error' }));
+  // Connect to OpenAI's Realtime API
+  const openaiWs = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01', {
+    headers: {
+      'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+      'OpenAI-Beta': 'realtime=v1'
     }
   });
 
+  // When OpenAI WebSocket opens, configure the session
+  openaiWs.addEventListener('open', async () => {
+    console.log('Connected to OpenAI Realtime API');
+    
+    // Get any stored compliments for this session
+    let storedCompliments = '';
+    try {
+      storedCompliments = await env.COMPLIMENTS.get(sessionId) || '';
+    } catch (error) {
+      console.error('Error getting compliments from KV:', error);
+    }
+    
+    let instructions = `You are a friendly AI assistant having a real-time voice conversation. 
+      Be conversational, engaging, and helpful. Keep responses concise but warm.
+      Always end your responses with a question to keep the conversation flowing.
+      **You must speak only in English.**`;
+    
+    if (storedCompliments) {
+      instructions += `\n\nI can see you right now, and I want to compliment you: ${storedCompliments}`;
+    }
+
+    const sessionConfig = {
+      type: 'session.update',
+      session: {
+        modalities: ['text', 'audio'],
+        instructions: instructions,
+        voice: 'alloy',
+        input_audio_format: 'pcm16',
+        output_audio_format: 'pcm16',
+        input_audio_transcription: {
+          model: 'whisper-1'
+        }
+      }
+    };
+
+    openaiWs.send(JSON.stringify(sessionConfig));
+  });
+
+  // Forward messages from client to OpenAI
+  server.addEventListener('message', (event) => {
+    if (openaiWs.readyState === WebSocket.OPEN) {
+      openaiWs.send(event.data);
+    }
+  });
+
+  // Forward messages from OpenAI to client
+  openaiWs.addEventListener('message', (event) => {
+    if (server.readyState === WebSocket.OPEN) {
+      server.send(event.data);
+    }
+  });
+
+  // Handle connection closures
   server.addEventListener('close', () => {
-    console.log('WebSocket connection closed');
+    console.log('Client WebSocket connection closed');
+    openaiWs.close();
+  });
+
+  openaiWs.addEventListener('close', () => {
+    console.log('OpenAI WebSocket connection closed');
+    server.close();
+  });
+
+  // Handle errors
+  openaiWs.addEventListener('error', (error) => {
+    console.error('OpenAI WebSocket error:', error);
+    server.close();
   });
 
   return new Response(null, {
