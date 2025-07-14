@@ -257,7 +257,7 @@
                     this.isActive = true;
                     
                     // Start vision processing
-                    this.visionInterval = setInterval(() => this.sendVisionRequest(), 5000);
+                    this.startVisionProcessing();
 
                 } catch (err) {
                     console.error('Error starting session:', err);
