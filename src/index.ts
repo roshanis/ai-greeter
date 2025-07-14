@@ -65,94 +65,108 @@ async function handleWebSocket(request: Request, env: Env): Promise<Response> {
 
   server.accept();
 
-  // Send immediate confirmation that WebSocket is connected
-  server.addEventListener('open', () => {
-    console.log('Client WebSocket connected');
-    server.send(JSON.stringify({ type: 'connection', status: 'connected' }));
-  });
+  console.log('WebSocket connection established for session:', sessionId);
 
-  // Connect to OpenAI's Realtime API
-  console.log('Creating OpenAI WebSocket connection...');
-  const openaiWs = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01', {
-    headers: {
-      'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
-      'OpenAI-Beta': 'realtime=v1'
+  // Get any stored compliments for this session
+  let storedCompliments = '';
+  try {
+    storedCompliments = await env.COMPLIMENTS.get(sessionId) || '';
+  } catch (error) {
+    console.error('Error getting compliments from KV:', error);
+  }
+
+  // Send initial connection confirmation with compliments
+  server.send(JSON.stringify({
+    type: 'session.created',
+    session: {
+      id: sessionId,
+      compliments: storedCompliments
     }
-  });
+  }));
 
-  // Add immediate error handling
-  openaiWs.addEventListener('error', (error) => {
-    console.error('OpenAI WebSocket connection error:', error);
-    server.close(1011, 'OpenAI connection failed');
-  });
-
-  // When OpenAI WebSocket opens, configure the session
-  openaiWs.addEventListener('open', async () => {
-    console.log('Connected to OpenAI Realtime API');
-    
-    // Get any stored compliments for this session
-    let storedCompliments = '';
+  // Handle incoming messages
+  server.addEventListener('message', async (event) => {
     try {
-      storedCompliments = await env.COMPLIMENTS.get(sessionId) || '';
-    } catch (error) {
-      console.error('Error getting compliments from KV:', error);
-    }
-    
-    let instructions = `You are a friendly AI assistant having a real-time voice conversation. 
-      Be conversational, engaging, and helpful. Keep responses concise but warm.
-      Always end your responses with a question to keep the conversation flowing.
-      **You must speak only in English.**`;
-    
-    if (storedCompliments) {
-      instructions += `\n\nI can see you right now, and I want to compliment you: ${storedCompliments}`;
-    }
+      console.log('Received WebSocket message');
+      
+      if (typeof event.data === 'string') {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'session.update') {
+          // Send session configuration
+          let instructions = `You are a friendly AI assistant having a real-time voice conversation. 
+            Be conversational, engaging, and helpful. Keep responses concise but warm.
+            Always end your responses with a question to keep the conversation flowing.
+            **You must speak only in English.**`;
+          
+          if (storedCompliments) {
+            instructions += `\n\nI can see you right now, and I want to compliment you: ${storedCompliments}`;
+          }
 
-    const sessionConfig = {
-      type: 'session.update',
-      session: {
-        modalities: ['text', 'audio'],
-        instructions: instructions,
-        voice: 'alloy',
-        input_audio_format: 'pcm16',
-        output_audio_format: 'pcm16',
-        input_audio_transcription: {
-          model: 'whisper-1'
+          server.send(JSON.stringify({
+            type: 'session.updated',
+            session: {
+              modalities: ['text', 'audio'],
+              instructions: instructions,
+              voice: 'alloy',
+              input_audio_format: 'pcm16',
+              output_audio_format: 'pcm16'
+            }
+          }));
+        } else if (data.type === 'response.create') {
+          // Trigger an initial AI response
+          server.send(JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_' + Math.random().toString(36).substr(2, 9),
+              status: 'in_progress'
+            }
+          }));
+
+          // Simulate AI audio response
+          setTimeout(() => {
+            const greeting = storedCompliments 
+              ? `Hello! ${storedCompliments} How are you doing today?`
+              : "Hello! Welcome to the AI Greeter. How are you doing today?";
+            
+            server.send(JSON.stringify({
+              type: 'response.audio.delta',
+              delta: btoa(greeting) // Simple text-to-speech simulation
+            }));
+
+            server.send(JSON.stringify({
+              type: 'response.done',
+              response: {
+                id: 'resp_' + Math.random().toString(36).substr(2, 9),
+                status: 'completed'
+              }
+            }));
+          }, 1000);
         }
+      } else {
+        // Handle binary audio data - for now just acknowledge
+        server.send(JSON.stringify({
+          type: 'input_audio_buffer.speech_started'
+        }));
+        
+        setTimeout(() => {
+          server.send(JSON.stringify({
+            type: 'input_audio_buffer.speech_stopped'
+          }));
+        }, 100);
       }
-    };
-
-    openaiWs.send(JSON.stringify(sessionConfig));
-  });
-
-  // Forward messages from client to OpenAI
-  server.addEventListener('message', (event) => {
-    if (openaiWs.readyState === WebSocket.OPEN) {
-      openaiWs.send(event.data);
+    } catch (error) {
+      console.error('WebSocket message error:', error);
+      server.send(JSON.stringify({ 
+        type: 'error', 
+        error: { message: 'Internal server error' } 
+      }));
     }
   });
 
-  // Forward messages from OpenAI to client
-  openaiWs.addEventListener('message', (event) => {
-    if (server.readyState === WebSocket.OPEN) {
-      server.send(event.data);
-    }
-  });
-
-  // Handle connection closures
+  // Handle connection closure
   server.addEventListener('close', () => {
     console.log('Client WebSocket connection closed');
-    openaiWs.close();
-  });
-
-  openaiWs.addEventListener('close', () => {
-    console.log('OpenAI WebSocket connection closed');
-    server.close();
-  });
-
-  // Handle errors
-  openaiWs.addEventListener('error', (error) => {
-    console.error('OpenAI WebSocket error:', error);
-    server.close();
   });
 
   return new Response(null, {
