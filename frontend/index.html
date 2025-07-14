@@ -5,149 +5,145 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Greeter</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: center;
+            color: white;
         }
 
         .container {
-            max-width: 800px;
-            width: 100%;
-            background: white;
+            text-align: center;
+            max-width: 600px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
 
         h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
         }
 
-        .video-container {
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .camera-container {
             position: relative;
-            width: 100%;
-            max-width: 640px;
-            margin: 0 auto 20px;
+            margin: 2rem auto;
+            width: 320px;
+            height: 240px;
             border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
-        #cam {
+        #camera {
             width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        }
-
-        .start-btn {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .start-btn:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-        }
-
-        .stop-btn {
-            background: #f44336;
-            color: white;
-        }
-
-        .stop-btn:hover {
-            background: #da190b;
-            transform: translateY(-2px);
+            height: 100%;
+            object-fit: cover;
         }
 
         .status {
-            text-align: center;
-            padding: 15px;
+            font-size: 1.1rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
             border-radius: 10px;
-            margin: 10px 0;
             font-weight: 500;
         }
 
+        .status.connecting {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
         .status.connected {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+
+        .status.processing {
+            background: rgba(0, 123, 255, 0.2);
+            color: #007bff;
         }
 
         .status.disconnected {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .status.connecting {
-            background: #fff3cd;
-            color: #856404;
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
         }
 
         .vision-status {
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-            margin-top: 10px;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+            opacity: 0.8;
         }
 
-        .instructions {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            color: #555;
+        .controls {
+            margin: 2rem 0;
         }
 
-        .instructions h3 {
-            margin-top: 0;
-            color: #333;
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+            padding: 1rem;
             border-radius: 10px;
-            margin: 10px 0;
+            margin: 1rem 0;
             display: none;
         }
 
         .audio-visualizer {
+            height: 60px;
+            margin: 1rem 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 50px;
-            margin: 15px 0;
+            justify-content: center;
+            overflow: hidden;
         }
 
         .audio-bar {
-            width: 3px;
-            height: 10px;
-            background: #4CAF50;
+            width: 4px;
+            background: rgba(255, 255, 255, 0.6);
             margin: 0 1px;
             border-radius: 2px;
             transition: height 0.1s ease;
@@ -157,62 +153,56 @@
 <body>
     <div class="container">
         <h1>🤖 AI Greeter</h1>
+        <p class="subtitle">Your friendly AI companion with vision and voice</p>
         
-        <div class="video-container">
-            <video id="cam" autoplay muted playsinline></video>
+        <div class="camera-container">
+            <video id="camera" autoplay muted playsinline></video>
         </div>
-
-        <div class="controls">
-            <button id="startBtn" class="start-btn">Start Greeting</button>
-            <button id="stopBtn" class="stop-btn" style="display: none;">Stop</button>
-        </div>
-
-        <div id="status" class="status disconnected">Ready to start</div>
+        
+        <div id="status" class="status connecting">Initializing...</div>
         <div id="visionStatus" class="vision-status">Vision processing: Inactive</div>
         
-        <div class="audio-visualizer" id="audioVisualizer" style="display: none;">
+        <div class="audio-visualizer" id="audioVisualizer">
             <div class="audio-bar"></div>
             <div class="audio-bar"></div>
             <div class="audio-bar"></div>
             <div class="audio-bar"></div>
             <div class="audio-bar"></div>
+            <div class="audio-bar"></div>
+            <div class="audio-bar"></div>
+            <div class="audio-bar"></div>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" class="btn">Start Conversation</button>
+            <button id="stopBtn" class="btn" style="display: none;">Stop</button>
         </div>
         
         <div id="error" class="error"></div>
-
-        <div class="instructions">
-            <h3>Instructions:</h3>
-            <ul>
-                <li>Click "Start Greeting" to begin</li>
-                <li>Allow camera and microphone access</li>
-                <li>The AI will greet you and comment on your appearance</li>
-                <li>Speak naturally - the AI responds in real-time</li>
-                <li>Works best in Chrome or Edge browsers</li>
-            </ul>
-        </div>
     </div>
 
-    <script type="module">
+    <script>
         class AIGreeter {
             constructor() {
-                this.ws = null;
+                this.sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+                this.isActive = false;
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.isRecording = false;
+                this.audioContext = null;
                 this.stream = null;
                 this.visionInterval = null;
-                this.sessionId = this.generateSessionId();
-                this.isActive = false;
-                this.audioContext = null;
-                this.nextPlayTime = 0;
                 
                 this.initializeElements();
                 this.setupEventListeners();
             }
 
             initializeElements() {
-                this.cam = document.getElementById('cam');
-                this.startBtn = document.getElementById('startBtn');
-                this.stopBtn = document.getElementById('stopBtn');
+                this.cam = document.getElementById('camera');
                 this.status = document.getElementById('status');
                 this.visionStatus = document.getElementById('visionStatus');
+                this.startBtn = document.getElementById('startBtn');
+                this.stopBtn = document.getElementById('stopBtn');
                 this.error = document.getElementById('error');
                 this.audioVisualizer = document.getElementById('audioVisualizer');
             }
@@ -229,12 +219,11 @@
             async start() {
                 try {
                     this.showStatus('Requesting camera and microphone access...', 'connecting');
-                    this.nextPlayTime = 0;
                     
-                    // Get user media
-                    this.stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { width: 640, height: 480 }, 
-                        audio: { 
+                    // Get camera and microphone access
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480 },
+                        audio: {
                             sampleRate: 16000,
                             channelCount: 1,
                             echoCancellation: true,
@@ -243,15 +232,9 @@
                     });
                     
                     this.cam.srcObject = this.stream;
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                     
-                    // Initialize audio context
-                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                        sampleRate: 16000
-                    });
-
-                    await this.audioContext.audioWorklet.addModule('recorder-processor.js');
-                    
-                    this.connectWebSocket();
+                    await this.connectToAI();
                     this.startBtn.style.display = 'none';
                     this.stopBtn.style.display = 'inline-block';
                     this.isActive = true;
@@ -266,151 +249,286 @@
                 }
             }
 
-            async connectWebSocket() {
+            async connectToAI() {
                 this.showStatus('Connecting to AI...', 'connecting');
                 
-                // Use wss for secure connection, which is required for deployed workers
-                const wsUrl = `wss://${window.location.host}/ws?sessionId=${this.sessionId}`;
-                this.ws = new WebSocket(wsUrl);
-
-                this.ws.onopen = () => {
-                    this.showStatus('Connected! You can start speaking.', 'connected');
-                    this.isActive = true;
-                    this.setupAudioProcessing();
-                    
-                    // Wait a moment for session to be configured, then trigger initial greeting
-                    setTimeout(() => {
-                        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                            console.log('Triggering initial response create...');
-                            this.ws.send(JSON.stringify({
-                                type: 'response.create'
-                            }));
-                        }
-                    }, 500); // Reduced delay
-                };
-                
-                this.ws.onmessage = (event) => {
-                    if (event.data instanceof Blob) {
-                        this.playAudioBlob(event.data);
+                try {
+                    const response = await fetch('/test');
+                    if (response.ok) {
+                        this.showStatus('Connected! You can start speaking.', 'connected');
+                        this.setupAudioProcessing();
+                        
+                        // Send initial greeting
+                        setTimeout(() => {
+                            this.sendInitialGreeting();
+                        }, 1000);
                     } else {
-                        this.handleRealtimeMessage(event.data);
+                        throw new Error('Connection test failed');
                     }
-                };
-                
-                this.ws.onclose = () => {
-                    this.showStatus('Disconnected', 'disconnected');
-                };
-                
-                this.ws.onerror = (error) => {
-                    this.showError('WebSocket error: ' + error.message);
-                };
+                } catch (error) {
+                    this.showError('Failed to connect to AI: ' + error.message);
+                }
+            }
+
+            async sendInitialGreeting() {
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            text: "Hello, I just connected. Please greet me!",
+                            sessionId: this.sessionId
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.response) {
+                            await this.speakText(data.response);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error sending initial greeting:', error);
+                }
             }
 
             async setupAudioProcessing() {
                 try {
-                    const source = this.audioContext.createMediaStreamSource(this.stream);
-                    const processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+                    // Set up MediaRecorder for voice recording
+                    this.mediaRecorder = new MediaRecorder(this.stream, {
+                        mimeType: 'audio/webm;codecs=opus'
+                    });
                     
-                    processor.onaudioprocess = (event) => {
-                        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                            const inputData = event.inputBuffer.getChannelData(0);
-                            
-                            // Convert to 16-bit PCM
-                            const pcmData = new Int16Array(inputData.length);
-                            for (let i = 0; i < inputData.length; i++) {
-                                pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
-                            }
-                            
-                            // Send audio data to WebSocket as raw binary data
-                            this.ws.send(pcmData.buffer);
-                            
-                            // Update audio visualizer
-                            this.updateAudioVisualizer(inputData);
+                    this.audioChunks = [];
+                    this.isRecording = false;
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            this.audioChunks.push(event.data);
                         }
                     };
                     
-                    source.connect(processor);
-                    processor.connect(this.audioContext.destination);
+                    this.mediaRecorder.onstop = async () => {
+                        if (this.audioChunks.length > 0) {
+                            const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                            this.audioChunks = [];
+                            await this.processAudio(audioBlob);
+                        }
+                    };
                     
-                } catch (error) {
-                    console.error('Audio processing setup error:', error);
+                    // Set up voice activity detection
+                    this.setupVoiceDetection();
+                    
+                } catch (err) {
+                    console.error('Error setting up audio processing:', err);
+                    this.showError(`Audio processing error: ${err.message}`);
                 }
             }
 
-            updateAudioVisualizer(audioData) {
+            setupVoiceDetection() {
+                const source = this.audioContext.createMediaStreamSource(this.stream);
+                const analyser = this.audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+                
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                let silenceStart = Date.now();
+                let speaking = false;
+                
+                const checkAudio = () => {
+                    if (!this.isActive) return;
+                    
+                    analyser.getByteFrequencyData(dataArray);
+                    const volume = dataArray.reduce((a, b) => a + b) / bufferLength;
+                    
+                    // Update visualizer
+                    this.updateAudioVisualizer(volume);
+                    
+                    if (volume > 20) { // Voice detected
+                        if (!speaking) {
+                            speaking = true;
+                            this.startRecording();
+                        }
+                        silenceStart = Date.now();
+                    } else { // Silence
+                        if (speaking && Date.now() - silenceStart > 1500) { // 1.5 seconds of silence
+                            speaking = false;
+                            this.stopRecording();
+                        }
+                    }
+                    
+                    requestAnimationFrame(checkAudio);
+                };
+                
+                checkAudio();
+            }
+
+            updateAudioVisualizer(volume) {
                 const bars = this.audioVisualizer.querySelectorAll('.audio-bar');
-                const rms = Math.sqrt(audioData.reduce((sum, val) => sum + val * val, 0) / audioData.length);
-                const volume = Math.min(1, rms * 10);
+                const normalizedVolume = Math.min(volume / 50, 1);
                 
                 bars.forEach((bar, index) => {
-                    const height = Math.max(10, volume * 40 + Math.random() * 10);
-                    bar.style.height = `${height}px`;
+                    const height = Math.max(4, normalizedVolume * 50 * (Math.random() * 0.5 + 0.5));
+                    bar.style.height = height + 'px';
                 });
             }
 
-            async playAudioBlob(blob) {
-                if (!this.audioContext) return;
-                try {
-                    const arrayBuffer = await blob.arrayBuffer();
-                    const pcm16 = new Int16Array(arrayBuffer);
-                    const float32 = new Float32Array(pcm16.length);
-                    for (let i = 0; i < pcm16.length; i++) {
-                        float32[i] = pcm16[i] / 32768.0;
-                    }
-                    const audioBuffer = this.audioContext.createBuffer(1, float32.length, 24000);
-                    audioBuffer.getChannelData(0).set(float32);
-                    const source = this.audioContext.createBufferSource();
-                    source.buffer = audioBuffer;
-                    source.connect(this.audioContext.destination);
-                    const currentTime = this.audioContext.currentTime;
-                    let scheduleTime = this.nextPlayTime;
-                    if (currentTime > scheduleTime) {
-                        scheduleTime = currentTime;
-                    }
-                    source.start(scheduleTime);
-                    this.nextPlayTime = scheduleTime + audioBuffer.duration;
-                } catch (error) {
-                    console.error('Error playing audio blob:', error);
+            startRecording() {
+                if (!this.isRecording && this.mediaRecorder.state === 'inactive') {
+                    this.audioChunks = [];
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    console.log('Started recording...');
                 }
             }
 
-            handleRealtimeMessage(data) {
+            stopRecording() {
+                if (this.isRecording && this.mediaRecorder.state === 'recording') {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    console.log('Stopped recording...');
+                }
+            }
+
+            async processAudio(audioBlob) {
                 try {
-                    const message = JSON.parse(data);
+                    this.showStatus('Processing speech...', 'processing');
                     
-                    if (message.type === 'response.text.delta') {
-                        console.log('Text response:', message.delta);
-                    } else if (message.type === 'session.created') {
-                        console.log('Session created:', message.session);
-                    } else if (message.type === 'error') {
-                        this.showError('OpenAI API Error: ' + message.error.message);
+                    // Step 1: Speech to Text
+                    const transcription = await this.speechToText(audioBlob);
+                    if (!transcription || transcription.trim().length < 2) {
+                        this.showStatus('Connected! You can start speaking.', 'connected');
+                        return;
                     }
+                    
+                    console.log('Transcription:', transcription);
+                    
+                    // Step 2: Get AI Response
+                    const aiResponse = await this.getAIResponse(transcription);
+                    if (!aiResponse) {
+                        this.showStatus('Connected! You can start speaking.', 'connected');
+                        return;
+                    }
+                    
+                    console.log('AI Response:', aiResponse);
+                    
+                    // Step 3: Text to Speech
+                    await this.speakText(aiResponse);
+                    
+                    this.showStatus('Connected! You can start speaking.', 'connected');
+                    
                 } catch (error) {
-                    console.error('Error handling message:', data, error);
+                    console.error('Error processing audio:', error);
+                    this.showError('Error processing speech: ' + error.message);
+                    this.showStatus('Connected! You can start speaking.', 'connected');
+                }
+            }
+
+            async speechToText(audioBlob) {
+                try {
+                    const response = await fetch('/speech-to-text', {
+                        method: 'POST',
+                        headers: {
+                            'x-session-id': this.sessionId
+                        },
+                        body: audioBlob
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Speech-to-text failed: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    return data.success ? data.text : null;
+                    
+                } catch (error) {
+                    console.error('Speech-to-text error:', error);
+                    return null;
+                }
+            }
+
+            async getAIResponse(text) {
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            text: text,
+                            sessionId: this.sessionId
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Chat failed: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    return data.success ? data.response : null;
+                    
+                } catch (error) {
+                    console.error('Chat error:', error);
+                    return null;
+                }
+            }
+
+            async speakText(text) {
+                try {
+                    this.showStatus('AI is speaking...', 'processing');
+                    
+                    const response = await fetch('/text-to-speech', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ text: text })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Text-to-speech failed: ${response.status}`);
+                    }
+                    
+                    const audioBlob = await response.blob();
+                    await this.playAudioBlob(audioBlob);
+                    
+                } catch (error) {
+                    console.error('Text-to-speech error:', error);
+                }
+            }
+
+            async playAudioBlob(blob) {
+                try {
+                    const audio = new Audio();
+                    audio.src = URL.createObjectURL(blob);
+                    
+                    return new Promise((resolve, reject) => {
+                        audio.onended = resolve;
+                        audio.onerror = reject;
+                        audio.play();
+                    });
+                } catch (error) {
+                    console.error('Error playing audio:', error);
                 }
             }
 
             startVisionProcessing() {
                 this.visionStatus.textContent = 'Vision processing: Active';
                 
-                const canvas = new OffscreenCanvas(640, 480);
-                const ctx = canvas.getContext('2d');
-                
                 this.visionInterval = setInterval(async () => {
                     if (!this.isActive) return;
                     
                     try {
-                        // Draw current video frame to canvas
+                        const canvas = document.createElement('canvas');
+                        canvas.width = this.cam.videoWidth;
+                        canvas.height = this.cam.videoHeight;
+                        const ctx = canvas.getContext('2d');
                         ctx.drawImage(this.cam, 0, 0, canvas.width, canvas.height);
-                        
-                        // Convert to blob and then to base64
-                        const blob = await canvas.convertToBlob({ 
-                            type: 'image/jpeg', 
-                            quality: 0.6 
-                        });
-                        
-                        const arrayBuffer = await blob.arrayBuffer();
-                        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                        const base64Image = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
                         
                         // Send to vision endpoint
                         await fetch('/vision', {
@@ -419,46 +537,36 @@
                                 'Content-Type': 'text/plain',
                                 'x-session-id': this.sessionId
                             },
-                            body: base64
+                            body: base64Image
                         });
                         
                     } catch (error) {
                         console.error('Vision processing error:', error);
                     }
-                }, 3000); // Every 3 seconds
+                }, 5000); // Every 5 seconds
+            }
+
+            showVisionStatus(message) {
+                this.visionStatus.textContent = message;
             }
 
             stop() {
-                if (!this.isActive) return;
                 this.isActive = false;
-                this.nextPlayTime = 0;
                 
                 if (this.visionInterval) {
                     clearInterval(this.visionInterval);
-                    this.visionInterval = null;
-                }
-                
-                if (this.ws) {
-                    this.ws.close();
-                    this.ws = null;
                 }
                 
                 if (this.stream) {
                     this.stream.getTracks().forEach(track => track.stop());
-                    this.stream = null;
                 }
                 
                 if (this.audioContext) {
                     this.audioContext.close();
-                    this.audioContext = null;
                 }
-                
-                this.cam.srcObject = null;
                 
                 this.startBtn.style.display = 'inline-block';
                 this.stopBtn.style.display = 'none';
-                this.audioVisualizer.style.display = 'none';
-                
                 this.showStatus('Stopped', 'disconnected');
                 this.visionStatus.textContent = 'Vision processing: Inactive';
             }
@@ -474,37 +582,6 @@
                 setTimeout(() => {
                     this.error.style.display = 'none';
                 }, 5000);
-            }
-
-            showVisionStatus(message) {
-                // Update status with vision-specific message
-                this.showStatus(message, 'processing');
-            }
-
-            async sendVisionRequest() {
-                try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = this.cam.videoWidth;
-                    canvas.height = this.cam.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(this.cam, 0, 0, canvas.width, canvas.height);
-                    const base64Image = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
-                    
-                    this.showVisionStatus('Sending image for analysis...');
-                    await fetch('/vision', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'text/plain',
-                            'x-session-id': this.sessionId,
-                        },
-                        body: base64Image,
-                    });
-                    this.showVisionStatus('Image processed.');
-
-                } catch (err) {
-                    console.error('Error sending vision request:', err);
-                    this.showVisionStatus('Vision request failed.');
-                }
             }
         }
 
