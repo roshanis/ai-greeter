@@ -267,13 +267,15 @@
             }
 
             async connectWebSocket() {
-                this.showStatus('Connecting to server...', 'connecting');
+                this.showStatus('Connecting to AI...', 'connecting');
                 
-                const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-                this.ws = new WebSocket(`${wsProtocol}//${location.host}/?sessionId=${this.sessionId}`);
+                // Use wss for secure connection, which is required for deployed workers
+                const wsUrl = `wss://${window.location.host}/ws?sessionId=${this.sessionId}`;
+                this.ws = new WebSocket(wsUrl);
 
                 this.ws.onopen = () => {
-                    this.showStatus('Connected. Starting conversation...', 'connected');
+                    this.showStatus('Connected! You can start speaking.', 'connected');
+                    this.isActive = true;
                     this.setupAudioProcessing();
                     
                     // Wait a moment for session to be configured, then trigger initial greeting
