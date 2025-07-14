@@ -1,10 +1,5 @@
 import { OpenAI } from 'openai';
 
-interface Env {
-  COMPLIMENTS: KVNamespace;
-  OPENAI_API_KEY: string;
-}
-
 export async function onRequestPost(context: any): Promise<Response> {
   const { request, env } = context;
 
