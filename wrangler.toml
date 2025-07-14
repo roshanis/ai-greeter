@@ -1,0 +1,8 @@
+name = "greeta12"
+compatibility_date = "2024-05-18"
+compatibility_flags = ["nodejs_compat"]
+
+# KV Namespace for storing vision-based compliments
+[[kv_namespaces]]
+binding = "COMPLIMENTS"
+id = "e75975bba7a145f882308c0c3d17f730" 

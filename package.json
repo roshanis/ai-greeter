@@ -1,0 +1,17 @@
+{
+  "name": "greeta12",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler pages dev frontend --compatibility-flags=nodejs_compat",
+    "build": "echo 'No build needed for static frontend'",
+    "deploy": "wrangler pages deploy frontend"
+  },
+  "dependencies": {
+    "openai": "^4.104.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250712.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.24.3"
+  }
+} 
