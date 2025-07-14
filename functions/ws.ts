@@ -5,7 +5,7 @@ interface Env {
   OPENAI_API_KEY: string;
 }
 
-export async function onRequest(context: any): Promise<Response> {
+export async function onRequestGet(context: any): Promise<Response> {
   const { request, env } = context;
   
   // Handle WebSocket upgrade
