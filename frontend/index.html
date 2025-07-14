@@ -476,6 +476,11 @@
                 }, 5000);
             }
 
+            showVisionStatus(message) {
+                // Update status with vision-specific message
+                this.showStatus(message, 'processing');
+            }
+
             async sendVisionRequest() {
                 try {
                     const canvas = document.createElement('canvas');
