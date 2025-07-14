@@ -1,0 +1,16 @@
+name = "greeta12"
+main = "src/index.ts"
+compatibility_date = "2024-05-18"
+compatibility_flags = ["nodejs_compat"]
+
+# Serve static files from frontend directory
+[assets]
+directory = "./frontend"
+
+# KV Namespace for storing vision-based compliments
+[[kv_namespaces]]
+binding = "COMPLIMENTS"
+id = "e75975bba7a145f882308c0c3d17f730"
+
+# Environment variables should be set as secrets:
+# wrangler secret put OPENAI_API_KEY 
