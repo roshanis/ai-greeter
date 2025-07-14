@@ -9,9 +9,33 @@ export async function onRequestPost(context: any): Promise<Response> {
   const { request, env } = context;
 
   try {
+    // Check if API key is available
+    if (!env.OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY not found in environment');
+      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Check if KV namespace is available
+    if (!env.COMPLIMENTS) {
+      console.error('COMPLIMENTS KV namespace not found');
+      return new Response(JSON.stringify({ error: 'KV namespace configuration error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // Get base64 image from request body and session ID from header
     const base64Image = await request.text();
     const sessionId = request.headers.get('x-session-id');
+
+    console.log('Vision request received:', { 
+      hasImage: !!base64Image, 
+      imageLength: base64Image?.length,
+      sessionId: sessionId 
+    });
 
     if (!base64Image || !sessionId) {
       return new Response(JSON.stringify({ error: 'Missing image or sessionId' }), {
@@ -65,8 +89,15 @@ export async function onRequestPost(context: any): Promise<Response> {
 
   } catch (error) {
     console.error('Vision processing error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    });
+    
     return new Response(JSON.stringify({ 
-      error: 'Failed to process image' 
+      error: 'Failed to process image',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
