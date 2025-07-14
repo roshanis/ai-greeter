@@ -1,9 +1,14 @@
 import { Router, IRequest } from 'itty-router';
 import { OpenAI } from 'openai';
+import { Ai } from "@cloudflare/ai";
+
+// This is a simple AI greeter application.
+// It uses Cloudflare Workers, AI, and KV storage.
 
 export interface Env {
 	COMPLIMENTS: KVNamespace;
 	OPENAI_API_KEY: string;
+	AI: any;
 }
 
 const router = Router();
