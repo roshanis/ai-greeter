@@ -413,11 +413,11 @@
                         const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
                         
                         // Send to vision endpoint
-                        await fetch('http://localhost:3000/vision', {
+                        await fetch('/vision', {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/octet-stream',
-                                'X-Session-ID': this.sessionId
+                                'Content-Type': 'text/plain',
+                                'x-session-id': this.sessionId
                             },
                             body: base64
                         });
