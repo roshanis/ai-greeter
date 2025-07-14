@@ -1,6 +1,6 @@
 name = "greeta12"
 main = "src/index.ts"
-compatibility_date = "2024-05-18"
+compatibility_date = "2024-07-13"
 compatibility_flags = ["nodejs_compat"]
 
 # Serve static files from frontend directory
