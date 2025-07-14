@@ -1,0 +1,19 @@
+{
+  "name": "greeter-backend",
+  "version": "1.0.0",
+  "description": "AI Greeter Backend",
+  "main": "src/server.ts",
+  "scripts": {
+    "dev": "wrangler dev src/server.ts",
+    "deploy": "wrangler deploy --minify src/server.ts"
+  },
+  "dependencies": {
+    "itty-router": "^4.0.23",
+    "openai": "^4.52.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240512.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^4.24.3"
+  }
+}
