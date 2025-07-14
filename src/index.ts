@@ -41,8 +41,10 @@ export default {
 async function handleWebSocket(request: Request, env: Env): Promise<Response> {
   // Handle WebSocket upgrade
   const upgradeHeader = request.headers.get('Upgrade');
-  if (upgradeHeader !== 'websocket') {
-    return new Response('Expected Upgrade: websocket', { status: 426 });
+  const connectionHeader = request.headers.get('Connection');
+  
+  if (upgradeHeader !== 'websocket' || !connectionHeader?.toLowerCase().includes('upgrade')) {
+    return new Response('Expected WebSocket upgrade', { status: 426 });
   }
 
   const url = new URL(request.url);
@@ -57,12 +59,25 @@ async function handleWebSocket(request: Request, env: Env): Promise<Response> {
 
   server.accept();
 
+  // Send immediate confirmation that WebSocket is connected
+  server.addEventListener('open', () => {
+    console.log('Client WebSocket connected');
+    server.send(JSON.stringify({ type: 'connection', status: 'connected' }));
+  });
+
   // Connect to OpenAI's Realtime API
+  console.log('Creating OpenAI WebSocket connection...');
   const openaiWs = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01', {
     headers: {
       'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
       'OpenAI-Beta': 'realtime=v1'
     }
+  });
+
+  // Add immediate error handling
+  openaiWs.addEventListener('error', (error) => {
+    console.error('OpenAI WebSocket connection error:', error);
+    server.close(1011, 'OpenAI connection failed');
   });
 
   // When OpenAI WebSocket opens, configure the session
