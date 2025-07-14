@@ -12,5 +12,4 @@ kv_namespaces = [
 # You will need to add your OpenAI API Key as a secret using wrangler
 # Example command: wrangler secret put OPENAI_API_KEY
 # Ensure you run this command before deploying.
-# The key here is just a placeholder.
-OPENAI_API_KEY = "dummy_key_replace_with_secret" 
+# The key here is just a placeholder. 
