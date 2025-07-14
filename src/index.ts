@@ -39,6 +39,12 @@ export default {
 };
 
 async function handleWebSocket(request: Request, env: Env): Promise<Response> {
+  // Check for secret first
+  if (!env.OPENAI_API_KEY) {
+    console.error('OPENAI_API_KEY secret not set');
+    return new Response('Server configuration error: Missing API key', { status: 500 });
+  }
+
   // Handle WebSocket upgrade
   const upgradeHeader = request.headers.get('Upgrade');
   const connectionHeader = request.headers.get('Connection');
