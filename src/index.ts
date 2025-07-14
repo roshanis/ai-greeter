@@ -19,6 +19,21 @@ export default {
       return handleVision(request, env);
     }
     
+    // Handle speech-to-text API
+    if (url.pathname === '/speech-to-text' && request.method === 'POST') {
+      return handleSpeechToText(request, env);
+    }
+    
+    // Handle chat completion API
+    if (url.pathname === '/chat' && request.method === 'POST') {
+      return handleChat(request, env);
+    }
+    
+    // Handle text-to-speech API
+    if (url.pathname === '/text-to-speech' && request.method === 'POST') {
+      return handleTextToSpeech(request, env);
+    }
+    
     // Handle test endpoints
     if (url.pathname === '/test') {
       return new Response(JSON.stringify({ 
@@ -265,6 +280,195 @@ async function handleVision(request: Request, env: Env): Promise<Response> {
     
     return new Response(JSON.stringify({ 
       error: 'Failed to process image',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+async function handleSpeechToText(request: Request, env: Env): Promise<Response> {
+  try {
+    if (!env.OPENAI_API_KEY) {
+      return new Response(JSON.stringify({ error: 'API key not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Get audio data from request
+    const audioData = await request.arrayBuffer();
+    const sessionId = request.headers.get('x-session-id');
+
+    if (!audioData || !sessionId) {
+      return new Response(JSON.stringify({ error: 'Missing audio data or session ID' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Create form data for OpenAI Whisper API
+    const formData = new FormData();
+    formData.append('file', new Blob([audioData], { type: 'audio/webm' }), 'audio.webm');
+    formData.append('model', 'whisper-1');
+
+    // Call OpenAI Whisper API
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    return new Response(JSON.stringify({
+      success: true,
+      text: result.text || ''
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('Speech-to-text error:', error);
+    return new Response(JSON.stringify({
+      error: 'Failed to transcribe audio',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+async function handleChat(request: Request, env: Env): Promise<Response> {
+  try {
+    if (!env.OPENAI_API_KEY) {
+      return new Response(JSON.stringify({ error: 'API key not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const { text, sessionId } = await request.json();
+
+    if (!text || !sessionId) {
+      return new Response(JSON.stringify({ error: 'Missing text or session ID' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Get stored compliments for this session
+    let storedCompliments = '';
+    try {
+      storedCompliments = await env.COMPLIMENTS.get(sessionId) || '';
+    } catch (error) {
+      console.error('Error getting compliments from KV:', error);
+    }
+
+    // Create system message with compliments
+    let systemMessage = `You are a friendly AI assistant having a voice conversation. 
+      Be conversational, engaging, and helpful. Keep responses concise but warm (1-2 sentences max).
+      Always end your responses with a question to keep the conversation flowing.
+      **You must speak only in English.**`;
+    
+    if (storedCompliments) {
+      systemMessage += `\n\nI can see you right now, and I want to compliment you: ${storedCompliments}`;
+    }
+
+    // Initialize OpenAI
+    const openai = new OpenAI({
+      apiKey: env.OPENAI_API_KEY,
+    });
+
+    // Get AI response
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemMessage },
+        { role: "user", content: text }
+      ],
+      max_tokens: 100,
+      temperature: 0.7
+    });
+
+    const aiResponse = response.choices[0]?.message?.content || "I'm sorry, I didn't understand that.";
+
+    return new Response(JSON.stringify({
+      success: true,
+      response: aiResponse
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('Chat completion error:', error);
+    return new Response(JSON.stringify({
+      error: 'Failed to get AI response',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+async function handleTextToSpeech(request: Request, env: Env): Promise<Response> {
+  try {
+    if (!env.OPENAI_API_KEY) {
+      return new Response(JSON.stringify({ error: 'API key not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const { text } = await request.json();
+
+    if (!text) {
+      return new Response(JSON.stringify({ error: 'Missing text' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Call OpenAI Text-to-Speech API
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        voice: 'alloy',
+        input: text,
+        response_format: 'mp3'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    // Return the audio data directly
+    return new Response(response.body, {
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'Cache-Control': 'no-cache'
+      }
+    });
+
+  } catch (error) {
+    console.error('Text-to-speech error:', error);
+    return new Response(JSON.stringify({
+      error: 'Failed to generate speech',
       details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
